@@ -1,0 +1,84 @@
+source("scripts/preprocesado_clinico.R")
+source("scripts/preprocesado_mirnas.R")
+
+
+# Función para crear df que contenga tanto datos clínicos como 
+# de expresiones de mirnas
+procesar_datos_mirna_y_clinicos <- function(x, y) {
+  
+  # Extraer nombres de muestra
+  nombres_muestras <- colnames(x)
+
+  # Clasificar según los últimos dos dígitos
+  tipo_muestra <- ifelse(
+    grepl("-01$", nombres_muestras), "enferma",
+    ifelse(grepl("-11$", nombres_muestras), "sana", NA)
+  )
+
+  # Crear nueva fila con clasificación
+  x <- rbind("tipo_muestra" = tipo_muestra, x)
+  
+  columnas_clinicas <- colnames(y)
+  for(i in 1:length(columnas_clinicas)){
+    nueva_obs <- rep(NA, ncol(x))   # Columna de NA's  
+    names(nueva_obs) <- colnames(x)
+    x <- rbind(x, nueva_obs)        # La añadimos al df            
+    rownames(x)[nrow(x)] <- columnas_clinicas[i]   
+    # Le asociamos el nombre de la col. clínica correspondiente
+  }
+  
+  id_pacientes <- rownames(y)
+  for(i in 1:length(id_pacientes)){
+    # Comprobamos si hay match entre un id del paciente de los datos clínicos
+    # y las muestras provenientes de los datos de mirnas
+    if(any(sapply(id_pacientes[i], function(p) grepl(p, colnames(x))))){
+      # En caso afirmativo, vemos en qué indices coinciden
+      vector_coincidencias <- which(grepl(id_pacientes[i],colnames(x)))
+      for(j in 1:length(vector_coincidencias)){
+        pos <- vector_coincidencias[j]
+        x[,pos][(nrow(x)-(length(columnas_clinicas)-1)):nrow(x)] <- t(y[id_pacientes[i],])
+      }
+    }
+  }
+  
+  return(t(x))
+}
+
+
+transformacion_variables <- function(df){
+  df$tipo_muestra <- as.factor(df$tipo_muestra)
+  col_clinicas <- colnames(new_clinical_df)
+  for (i in 2:(ncol(df) - length(col_clinicas))){
+    df[,i] <- as.numeric(df[,i])
+  }
+  df$vital_status <- as.factor(df$vital_status)
+  df$time <- as.numeric(df$time)
+  for (i in (ncol(df) - length(col_clinicas) + 3):ncol(df)){
+    columna_iesima <- colnames(df)[i]
+    print(columna_iesima)
+    if (columna_iesima %in% lista_variables_numericas){
+      df[,i] <- as.numeric(df[,i])
+    }else if(columna_iesima %in% lista_variables_categoricas){
+      df[,i] <- as.factor(df[,i])
+    }
+  }
+  return(df)
+}
+
+df_definitivo <- as.data.frame(procesar_datos_mirna_y_clinicos(
+  mirnas_tras_filtros_y_dea, new_clinical_df
+))
+df_definitivo <- transformacion_variables(df_definitivo)
+
+df_definitivo <- df_definitivo %>% filter(!is.na(time)) %>% filter(!is.na(vital_status))
+
+
+head(df_definitivo)
+str(df_definitivo)
+rownames(df_definitivo)
+class(df_definitivo)
+str(df_definitivo[,colnames(new_clinical_df)])
+colSums(is.na(df_definitivo))
+length(colnames(new_clinical_df))
+dim(new_clinical_df)
+dim(mirnas_imputados)

@@ -1,0 +1,30 @@
+---
+title: "TCGA-ML Explorer"
+#author: "Juan Manuel Pérez Rogerio"
+#date: "2025-06-25"
+output:  
+  flexdashboard::flex_dashboard:
+    theme: 
+      version: 4
+      bootswatch: minty
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducción {data-icon="fa-book-open" data-orientation="rows"}
+
+
+Column {.sidebar}
+-------------------------------------------------------
+
+Waiting time between eruptions and the duration of the eruption for the
+Old Faithful geyser in Yellowstone National Park, Wyoming, USA.
+
+
+Column
+-------------------------------------------------------
+
+### Geyser Eruption Duration

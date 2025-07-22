@@ -1,0 +1,123 @@
+source("scripts/datos_combinados.R")
+
+set.seed(123)
+library(survival)
+library(survminer)
+
+
+############## Predecir tiempo de supervivencia con Kaplan-Meier ##############
+
+datos_supervivencia_general <- df_definitivo[,c("tipo_muestra","vital_status","time")]
+
+# Conversión de las tres variables:
+variables <- c("tipo_muestra","vital_status","time")
+for (i in 1:length(variables)){
+  datos_supervivencia_general[,variables[i]] <- as.numeric(
+    datos_supervivencia_general[,variables[i]]
+  )
+}
+attach(datos_supervivencia_general)
+str(datos_supervivencia_general)
+
+# Transformación 'vital_status'
+datos_supervivencia_general$vital_status <- ifelse(
+  datos_supervivencia_general$vital_status == 2, 1, 0
+)
+
+# Aplicamos modelo
+curva <- survfit(Surv(time, vital_status) ~ tipo_muestra,
+                 data = datos_supervivencia_general, 
+                 type = "kaplan-meier")
+summary(curva)
+
+# Ploteamos curvas
+ggsurvplot(fit = curva, data = datos_supervivencia_general,
+           title = "Curva de supervivencia Kaplan-Meier",
+           xlab = "Tiempo (días)", ylab = "Prob. de supervivencia",
+           legend.title = "estimacion", legend.labs=c("enfermo","sano"))
+
+# # Regresión de Cox para saber si la entre las curvas es signif.
+# cox <- coxph(Surv(time, vital_status) ~ tipo_muestra,
+#              data = datos_supervivencia_general)
+# summary(cox)
+
+
+############## mirnas más significativos con Kaplan-Meier ##############
+
+
+filtro_mirnas_modelo_cox <- function(p_valor, hazard_ratio_en_valor_abs, df_mirnas, df_completo){
+  vector_mirnas <- vector()
+  lista_mirnas <- rownames(df_mirnas)
+  
+  # Dataframe con los datos que nos interesan
+  datos_supervivencia_mirnas <- df_completo[,c("time","vital_status",lista_mirnas)] %>%
+    mutate(across(everything(), as.numeric))
+  
+  # Transformación 'vital_status'
+  datos_supervivencia_mirnas$vital_status <- ifelse(
+    datos_supervivencia_mirnas$vital_status == 2, 1, 0
+  )
+  for(i in 1:length(lista_mirnas)){
+    modelo_cox <- coxph(Surv(time, vital_status) ~ datos_supervivencia_mirnas[,lista_mirnas[i]],
+                        data = datos_supervivencia_mirnas)
+    if(summary(modelo_cox)$coefficients[,"Pr(>|z|)"] < p_valor & 
+       abs(1 - summary(modelo_cox)$coefficients[,"exp(coef)"]) > hazard_ratio_en_valor_abs){
+      vector_mirnas <- c(vector_mirnas, lista_mirnas[i])
+      print(lista_mirnas[i])
+      print(summary(modelo_cox)$coefficients)
+    }
+  }
+  return(vector_mirnas)
+}
+
+p_valor <- 0.05
+hazard_ratio_en_valor_abs <- 0.15
+
+mirnas_significativos <- filtro_mirnas_modelo_cox(
+  p_valor, hazard_ratio_en_valor_abs,
+  mirnas_imputados, df_definitivo
+)
+mirnas_significativos
+
+
+curva_kaplan_meier <- function(mirna_escogido, df_mirnas, df_completo){
+  
+  lista_mirnas <- rownames(df_mirnas)
+  
+  # Dataframe con los datos que nos interesan
+  datos_supervivencia_mirnas <- df_completo[,c("time","vital_status",lista_mirnas)] %>%
+    mutate(across(everything(), as.numeric))
+  
+  # Transformación 'vital_status'
+  datos_supervivencia_mirnas$vital_status <- ifelse(
+    datos_supervivencia_mirnas$vital_status == 2, 1, 0
+  )
+  
+  if (length(mirnas_significativos) == 1){
+    expr_mirnas <- datos_supervivencia_mirnas[,mirnas_significativos]
+    datos_supervivencia_mirnas$group <-
+      ifelse(expr_mirnas >= median(expr_mirnas),
+             "Expresión alta", "Expresión baja")
+  }else{
+    expr_mirnas <- datos_supervivencia_mirnas[,mirnas_significativos][mirna_escogido]
+    datos_supervivencia_mirnas$group <-
+      ifelse(expr_mirnas[,1] >= median(expr_mirnas[,1]),
+             "Expresión alta", "Expresión baja")
+  }
+  
+  curva <- survfit(Surv(time, vital_status) ~ group,
+                   data = datos_supervivencia_mirnas, 
+                   type = "kaplan-meier")
+  
+  # Ploteamos curvas
+  print(ggsurvplot(fit = curva, data = datos_supervivencia_mirnas, 
+             title = paste("Curva de Kaplan-Meier para", 
+                           mirnas_significativos[mirna_escogido]),
+             xlab = "Tiempo (días)", ylab = "Prob. de supervivencia"))
+  
+}
+
+num <- 1
+curva_kaplan_meier(num, mirnas_tras_filtros, df_definitivo)
+
+resultados_pareadas[mirnas_significativos,]

@@ -1,0 +1,26 @@
+{
+    "id": "33ACB2F9",
+    "path": "~/Archivos_R/scripts/analisis_expr_dif.R",
+    "project_path": "scripts/analisis_expr_dif.R",
+    "type": "r_source",
+    "hash": "223921616",
+    "contents": "",
+    "dirty": false,
+    "created": 1752080688943.0,
+    "source_on_save": false,
+    "relative_order": 8,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "81,31",
+        "scrollLine": "73"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1751830340,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1751830340,
+    "read_only": false,
+    "read_only_alternatives": []
+}

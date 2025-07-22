@@ -1,0 +1,26 @@
+{
+    "id": "C7C1DE2B",
+    "path": "~/Archivos_R/scripts/datos_combinados.R",
+    "project_path": "scripts/datos_combinados.R",
+    "type": "r_source",
+    "hash": "3307403017",
+    "contents": "",
+    "dirty": false,
+    "created": 1752076582297.0,
+    "source_on_save": false,
+    "relative_order": 4,
+    "properties": {
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "36,29",
+        "scrollLine": "24"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1752077057,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1752077057819,
+    "read_only": false,
+    "read_only_alternatives": []
+}

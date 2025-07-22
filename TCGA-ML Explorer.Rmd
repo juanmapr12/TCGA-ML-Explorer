@@ -1,0 +1,55 @@
+---
+title: "TCGA-ML Explorer"
+#author: "Juan Manuel Pérez Rogerio"
+#date: "2025-06-25"
+output:  
+  flexdashboard::flex_dashboard:
+    theme: 
+      version: 4
+      bootswatch: minty
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Introducción {data-icon="fa-book-open" data-orientation="rows"}
+
+# Preprocesado Clínico {data-navmenu="Preprocesado" data-icon="fa-stethoscope"}
+
+# Preprocesado de miRNAs {data-navmenu="Preprocesado" data-icon="fa-dna"}
+
+## Análisis de expresión diferencial {data-navmenu="Preprocesado" data-icon="fa-dna"}
+
+# Análisis de supervivencia {data-icon="fa-line-chart"}
+
+
+Análisis de supervivencia {.sidebar}
+-------------------------------------------------------
+
+```{r}
+inputPanel(
+    selectInput("mirnas", 
+                "Seleccione el miRNA al que aplicarle el análisis", 
+                choices = c("1","2","3"))
+  )
+```
+
+
+Column
+-------------------------------------------------------
+
+
+```{r}
+renderPlot({
+  hist(faithful$eruptions, probability = TRUE, breaks = as.numeric(input$n_breaks),
+       xlab = "Duration (minutes)", main = "Geyser Eruption Duration")
+  
+  dens <- density(faithful$eruptions, adjust = input$bw_adjust)
+  lines(dens, col = "blue")
+})
+```
+
+
+# Clustering {data-icon="fa-circle-nodes"}

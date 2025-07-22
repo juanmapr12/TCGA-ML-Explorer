@@ -1,0 +1,130 @@
+variable
+    Alive      Dead 
+0.5749526 0.4250474 
+Resumen descriptivo de la variable time:
+--------------------------------------------
+Media:                912.82
+Mediana:              644.00
+Desviación estándar:  866.74
+Rango:                1.00 – 6417.00
+IQR (Q3 - Q1):        798.00
+Asimetría (skewness): 2.50
+Apuntamiento (kurtosis): 8.75
+
+ Cuartiles:
+  Q1 (25%):  377.50
+  Q2 (50%):  644.00
+  Q3 (75%):  1175.50
+  90%:       1838.80
+Resumen descriptivo de la variable age_at_initial_pathologic_diagnosis:
+--------------------------------------------
+Media:                60.91
+Mediana:              61.00
+Desviación estándar:  11.93
+Rango:                19.00 – 90.00
+IQR (Q3 - Q1):        16.00
+Asimetría (skewness): -0.19
+Apuntamiento (kurtosis): 0.24
+
+ Cuartiles:
+  Q1 (25%):  53.00
+  Q2 (50%):  61.00
+  Q3 (75%):  69.00
+  90%:       77.00
+La variable age_at_initial_pathologic_diagnosis influye en el estado vital del paciente, siendo el p-valor de 0.0024413 
+------------------------------------------------ 
+Resumen descriptivo de la variable number_of_lymphnodes_positive_by_he:
+--------------------------------------------
+Media:                1.71
+Mediana:              0.00
+Desviación estándar:  3.89
+Rango:                0.00 – 44.00
+IQR (Q3 - Q1):        2.00
+Asimetría (skewness): 6.16
+Apuntamiento (kurtosis): 53.81
+
+ Cuartiles:
+  Q1 (25%):  0.00
+  Q2 (50%):  0.00
+  Q3 (75%):  2.00
+  90%:       5.00
+La variable number_of_lymphnodes_positive_by_he influye en el estado vital del paciente, siendo el p-valor de 0.0000508 
+------------------------------------------------ 
+variable
+    HISPANIC OR LATINO             is_missing NOT HISPANIC OR LATINO 
+            0.04933586             0.06831120             0.88235294 
+La variable ethnicity no influye en el estado vital del paciente. El p-valor del test es 0.4459050 
+variable
+   FEMALE      MALE 
+0.2694497 0.7305503 
+La variable gender influye en el estado vital del paciente, siendo el p-valor del test 0.0158764 
+variable
+AMERICAN INDIAN OR ALASKA NATIVE                            ASIAN 
+                     0.003795066                      0.020872865 
+       BLACK OR AFRICAN AMERICAN                       is_missing 
+                     0.091081594                      0.026565465 
+                           WHITE 
+                     0.857685009 
+La variable race no influye en el estado vital del paciente. El p-valor del test es 0.9340444 
+variable
+is_missing    Stage I   Stage II  Stage III  Stage IVA  Stage IVB  Stage IVC 
+0.02656546 0.03984820 0.18595825 0.20303605 0.51043643 0.02087287 0.01328273 
+La variable clinical_stage no influye en el estado vital del paciente. El p-valor del test es 0.2066173 
+variable
+ is_missing          T1          T2          T3          T4         T4a         T4b          TX 
+0.007590133 0.070208729 0.286527514 0.263757116 0.047438330 0.296015180 0.005692600 0.022770398 
+La variable clinical_T no influye en el estado vital del paciente. El p-valor del test es 0.0750127 
+variable
+ is_missing          N0          N1          N2         N2a         N2b         N2c          N3 
+0.007590133 0.464895636 0.161290323 0.036053131 0.032258065 0.161290323 0.085388994 0.017077799 
+         NX 
+0.034155598 
+La variable clinical_N no influye en el estado vital del paciente. El p-valor del test es 0.1932536 
+variable
+ is_missing          M0          M1          MX 
+0.009487666 0.939278937 0.011385199 0.039848197 
+La variable clinical_M no influye en el estado vital del paciente. El p-valor del test es 0.1339227 
+variable
+ is_missing     Stage I    Stage II   Stage III   Stage IVA   Stage IVB   Stage IVC 
+0.142314991 0.051233397 0.138519924 0.155597723 0.487666034 0.022770398 0.001897533 
+La variable pathologic_stage influye en el estado vital del paciente, siendo el p-valor del test 0.0029861 
+variable
+ is_missing          T0          T1          T2          T3          T4         T4a         T4b 
+0.043643264 0.001897533 0.092979127 0.263757116 0.191650854 0.020872865 0.303605313 0.007590133 
+         TX 
+0.074003795 
+La variable pathologic_T influye en el estado vital del paciente, siendo el p-valor del test 0.0076977 
+variable
+ is_missing          M0          M1          MX 
+0.514231499 0.360531309 0.001897533 0.123339658 
+La variable pathologic_M influye en el estado vital del paciente, siendo el p-valor del test 0.0015408 
+variable
+is_missing         N0         N1         N2        N2a        N2b        N2c         N3 
+0.04743833 0.33965844 0.12903226 0.02277040 0.01518027 0.19734345 0.09108159 0.01518027 
+        NX 
+0.14231499 
+La variable pathologic_N influye en el estado vital del paciente, siendo el p-valor del test 0.0000249 
+variable
+          0           1           2           3           4 
+0.717267552 0.197343454 0.068311195 0.007590133 0.009487666 
+La variable new_tumor_event_after_initial_treatment_yes influye en el estado vital del paciente, siendo el p-valor del test 0.0000000 
+variable
+          0           1           2           3           4           5 
+0.299810247 0.345351044 0.225806452 0.106261860 0.018975332 0.003795066 
+La variable new_tumor_event_after_initial_treatment_no influye en el estado vital del paciente, siendo el p-valor del test 0.0000000 
+variable
+          0           1           2           3 
+0.882352941 0.081593928 0.034155598 0.001897533 
+La variable additional_pharmaceutical_therapy_yes influye en el estado vital del paciente, siendo el p-valor del test 0.0016753 
+variable
+          0           1           2           3 
+0.817836812 0.157495256 0.022770398 0.001897533 
+La variable additional_pharmaceutical_therapy_no influye en el estado vital del paciente, siendo el p-valor del test 0.0009436 
+variable
+          0           1           2           3 
+0.907020873 0.077798861 0.013282732 0.001897533 
+La variable additional_radiation_therapy_yes influye en el estado vital del paciente, siendo el p-valor del test 0.0006038 
+variable
+          0           1           2           3           4 
+0.793168880 0.170777989 0.028462998 0.003795066 0.003795066 
+La variable additional_radiation_therapy_no influye en el estado vital del paciente, siendo el p-valor del test 0.0027437 

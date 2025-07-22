@@ -1,0 +1,341 @@
+if(!exists("gdcGetURL_new", mode="function")){
+  source("scripts/preparacion_entorno.R")
+}
+
+# Estudiaremos aquí los datos clínicos
+clinical_dir <- paste('metadatos', project, 'Clinical', sep='/')
+
+# Download clinical data
+gdcClinicalDownload(project.id = project,
+                    directory = clinical_dir, 
+                    write.manifest = FALSE,
+                    method = "gdc-client")
+
+clinical_df <- gdcClinicalMerge(clinical_dir)
+rownames_orig <- rownames(clinical_df)
+
+
+# Columna 'time'
+
+# Se creará la columna 'time', que representará el tiempo de un paciente 
+# desde el diagnóstico inicial del cáncer hasta que se produce el evento 
+# de interés (la muerte del paciente) o hasta el último chequeo. 
+# Para ello utilizamos las variables del dataset 'days_to_death' y 
+# 'days_to_last_follow_up', eliminándolas posteriormente debido a que 
+# contienen información oculta sobre nuestra variable objetivo 
+# 'vital_status'.
+clinical_df$time <- ifelse(!is.na(clinical_df$days_to_death),
+                           clinical_df$days_to_death,
+                           clinical_df$days_to_last_followup)
+clinical_df$days_to_death <- NULL
+clinical_df$days_to_last_followup <- NULL
+
+
+# Primer vistazo a los datos:
+head(clinical_df)
+summary(clinical_df)
+dim(clinical_df)
+colnames(clinical_df)
+attach(clinical_df)
+
+# Observamos que:
+# - En muchas de las variables, los valores 'NA' están representados como cadenas
+# de texto en lugar de como valores faltantes.
+# - Hay varias variables con todos sus valores nulos.
+# - La variable 'pathologic_categories' parece un resumen de la terna ('pathologic_T',
+# 'pathologic_N','pathologic_M'). 
+
+
+# Corregimos estas tres cosas + una adicional:
+
+# 1. Pasamos los "NA" a valores <NA>:
+clinical_df[clinical_df == "NA"] <- NA
+
+
+# 2. Eliminamos aquellas columnas que tengan al menos un porcentaje 
+# elevado de valores faltantes. Establezcamos un umbral del 40% de 
+# valores nulos en una sola columna para poder suprimirla de nuestro 
+# conjunto:
+umbral_valores_nulos <- trunc(nrow(clinical_df) * 0.6)
+datos_nulos <- colSums(is.na(clinical_df))
+for (i in 1:length(datos_nulos)){
+  if (datos_nulos[i] >= umbral_valores_nulos)
+    clinical_df <- clinical_df[, -which(names(clinical_df) == names(datos_nulos[i]))]
+}
+
+
+# 3. Eliminamos 'pathologic_categories':
+clinical_df$pathologic_categories <- NULL
+
+
+# 4. Eliminamos aquellas observaciones sin tiempo o sin estado vital:
+clinical_df <- clinical_df %>% filter(!is.na(time)) %>% filter(!is.na(vital_status))
+
+
+# Veamos las columnas que nos han quedado:
+lista_variables <- colnames(clinical_df)
+lista_variables
+
+# Clasificamos esas variables:
+lista_variables_numericas <- c("age_at_initial_pathologic_diagnosis",
+                               "number_of_lymphnodes_positive_by_he")
+
+lista_variables_categoricas_nominales <- c("ethnicity",
+                                          "gender",
+                                          "race")
+
+lista_variables_categoricas_ordinales <- 
+  c("clinical_stage",
+     "clinical_T",
+     "clinical_N",
+     "clinical_M",
+     "pathologic_stage",
+     "pathologic_T",
+     "pathologic_M",
+     "pathologic_N",
+     "new_tumor_event_after_initial_treatment_yes",
+     "new_tumor_event_after_initial_treatment_no",
+     "additional_pharmaceutical_therapy_yes",
+     "additional_pharmaceutical_therapy_no",
+     "additional_radiation_therapy_yes",
+     "additional_radiation_therapy_no")
+
+lista_variables_categoricas <- c(lista_variables_categoricas_nominales,
+                                 lista_variables_categoricas_ordinales)
+
+
+# 5. Cambio los valores NA por "is_missing" para evitar problemas
+valores_faltantes <- function(df){
+  for (i in 1:length(colnames(df))){
+    col <- colnames(df)[[i]]
+    a <- df[,col][is.na(df[,col])]
+    if (length(a) != 0){
+      if (col %in% lista_variables_numericas){
+        df[,col][is.na(df[,col])] <- 0
+      }else{
+        df[,col][is.na(df[,col])] <- "is_missing"
+      }
+    }
+  }
+  return(df)
+}
+clinical_df <- valores_faltantes(clinical_df)
+
+
+############### APARTADO 1: ANÁLISIS UNIVARIADO Y BIVARIADO DE CADA VARIABLE  ##################
+
+
+# Cargamos librerías:
+library(ggplot2)
+library(e1071)
+
+# Agilizamos las referencias a las columnas del dataframe:
+attach(clinical_df)
+
+# Primero las numéricas:
+
+# Función que las convierte de caracter a numéricas:
+convierte_aNumerica <- function(nombre_var){
+  clinical_df[[nombre_var]] <- as.numeric(clinical_df[[nombre_var]])
+  return(clinical_df)
+}
+
+# Función para el análisis univariado
+analisisUnivariado_Numericas <- function(nombre_var){
+  
+  variable <- clinical_df[[nombre_var]]
+  
+  # Calculamos estadísticas
+  media     <- mean(variable, na.rm = TRUE)
+  mediana   <- median(variable, na.rm = TRUE)
+  sd_val    <- sd(variable, na.rm = TRUE)
+  rango     <- range(variable, na.rm = TRUE)
+  cuartiles <- quantile(variable, probs = c(0.25, 0.5, 0.75, 0.9), na.rm = TRUE)
+  iqr_val   <- IQR(variable, na.rm = TRUE)
+  asim      <- skewness(variable, na.rm = TRUE)
+  apunt     <- kurtosis(variable, na.rm = TRUE)
+  
+  # Imprimimos resumen
+  cat(sprintf("Resumen descriptivo de la variable %s:\n", nombre_var))
+  cat("--------------------------------------------\n")
+  cat(sprintf("Media:                %.2f\n", media))
+  cat(sprintf("Mediana:              %.2f\n", mediana))
+  cat(sprintf("Desviación estándar:  %.2f\n", sd_val))
+  cat(sprintf("Rango:                %.2f – %.2f\n", rango[1], rango[2]))
+  cat(sprintf("IQR (Q3 - Q1):        %.2f\n", iqr_val))
+  cat(sprintf("Asimetría (skewness): %.2f\n", asim))
+  cat(sprintf("Apuntamiento (kurtosis): %.2f\n", apunt))
+  cat("\n Cuartiles:\n")
+  cat(sprintf("  Q1 (25%%):  %.2f\n", cuartiles[1]))
+  cat(sprintf("  Q2 (50%%):  %.2f\n", cuartiles[2]))
+  cat(sprintf("  Q3 (75%%):  %.2f\n", cuartiles[3]))
+  cat(sprintf("  90%%:       %.2f\n", cuartiles[4]))
+  
+  hist(variable, xlab = nombre_var, col = "lightblue",
+       main = sprintf("Histograma de la variable %s", nombre_var))
+}
+
+# Función para comprobar normalidad 
+sigueDistribucionNormal <- function(nombre_var, variable){
+  bool <- FALSE
+  df_alive <- variable[vital_status == "Alive"]
+  df_dead <- variable[vital_status == "Dead"]
+  pvalor_alive <- shapiro.test(df_alive)$p.value
+  pvalor_dead <- shapiro.test(df_dead)$p.value
+  if (pvalor_alive > 0.05 & pvalor_dead > 0.05)
+    bool <- TRUE
+  return(list(bool = bool, df_alive = df_alive, df_dead = df_dead))
+}
+
+lista_var_signif <- list()
+
+testNumericas_VariablesAsociadas <- function(nombre_var){
+  lista <- list()
+  resultado <- sigueDistribucionNormal(nombre_var, clinical_df[[nombre_var]])
+  if (resultado$bool){
+    p_valor <- t.test(resultado$df_alive, resultado$df_dead)$p.value
+    if (p_valor < 0.05){
+      lista <- list(nombre_var)
+      cat(sprintf("La variable %s influye en el estado vital del paciente, siendo el p-valor de %.7f \n", 
+                  nombre_var, p_valor))
+    }else{
+      cat(sprintf("La variable %s influye en el estado vital del paciente, siendo el p-valor de %.7f \n", 
+                  nombre_var, p_valor))
+    }
+  }else{
+      # Prueba U de Mann-Whitney
+      p_valor <- wilcox.test(resultado$df_alive, resultado$df_dead)$p.value
+      if(p_valor < 0.05){
+        lista <- list(nombre_var)
+        cat(sprintf("La variable %s influye en el estado vital del paciente, siendo el p-valor de %.7f \n", 
+                    nombre_var, p_valor))
+      }else{
+        cat(sprintf("La variable %s no influye en el estado vital del paciente. El p-valor es de %.7f \n", 
+                    nombre_var, p_valor))
+      }
+  }
+  cat("------------------------------------------------ \n")
+  p <- ggplot(clinical_df, aes(x=get(nombre_var),
+                          fill=vital_status,
+                          colour=vital_status)) + 
+    geom_histogram(position="identity", alpha=0.5) +
+    xlab(nombre_var)
+  print(p)
+  return(lista)
+}
+
+# Y ahora las categóricas:
+
+# Función que las convierte de caracter a categóricas:
+convierte_aCategorica <- function(nombre_var){
+  clinical_df[[nombre_var]] <- as.factor(clinical_df[[nombre_var]])
+  return(clinical_df)
+}
+
+# Función para el análisis univariado
+analisisUnivariado_Categoricas <- function(nombre_var){
+  variable <- clinical_df[[nombre_var]]
+  print(prop.table(table(variable)))
+}
+
+# Aplicamos test Chi-cuadrado, donde H0: "Las dos variables 
+# categóricas son independientes".
+testCategoricas_VariablesAsociadas <- function(nombre_var){
+  lista <- list()
+  variable <- clinical_df[[nombre_var]]
+  df <- data.frame(vital_status, variable)
+  t <- table(df$vital_status, df$variable)
+  c = chisq.test(t)
+  if(c$p.value < 0.0001){
+    lista <- list(nombre_var)
+    cat(sprintf("La variable %s influye en el estado vital del paciente, siendo el p-valor del test %.7f \n",
+                nombre_var, c$p.value))
+  }else{
+    cat(sprintf("La variable %s no influye en el estado vital del paciente. El p-valor del test es %.7f \n", 
+                nombre_var, c$p.value))
+  }
+  p <- ggplot(clinical_df, aes(x=variable,
+                          fill=vital_status,
+                          color=vital_status)) + 
+    geom_bar(position=position_dodge()) +
+    xlab(nombre_var)
+  print(p)
+  return(lista)
+}
+
+# Guardamos los outputs futuros en un fichero:
+sink("salida.txt")
+
+
+### Vital status ###
+
+clinical_df <- convierte_aCategorica('vital_status')
+analisisUnivariado_Categoricas('vital_status')
+lista_var_signif <- append(lista_var_signif, 'vital_status')
+
+
+### Time ###
+
+clinical_df <- convierte_aNumerica('time')
+analisisUnivariado_Numericas('time')
+lista_var_signif <- append(lista_var_signif, 'time')
+
+
+####### Bucle variables numéricas ########
+
+for(i in 1:length(lista_variables_numericas)){
+  if(lista_variables_numericas[i] %in% lista_variables){
+    nombre <- lista_variables_numericas[i]
+    clinical_df <- convierte_aNumerica(nombre)
+    analisisUnivariado_Numericas(nombre)
+    lista_var_signif <- append(lista_var_signif,
+                               testNumericas_VariablesAsociadas(nombre))
+  }
+}
+
+
+####### Bucle variables categóricas #######
+
+for(i in 1:length(lista_variables_categoricas)){
+  if(lista_variables_categoricas[i] %in% lista_variables){
+    nombre <- lista_variables_categoricas[i]
+    clinical_df <- convierte_aCategorica(nombre)
+    analisisUnivariado_Categoricas(nombre)
+    lista_var_signif <- append(lista_var_signif,
+                               testCategoricas_VariablesAsociadas(nombre))
+  }
+}
+
+sink()
+lista_var_signif
+
+
+# Ahora estudiamos las relaciones entre las variables significativas
+# y vemos qué par de variables se parecen para eliminar una variable
+# del par:
+library(vcd)
+comprueba_relaciones <- function(lista_pares_variables, lista){
+  for(i in 1:(length(lista_pares_variables)/2)){
+    var1 <- lista_pares_variables[,i][[1]]
+    var2 <- lista_pares_variables[,i][[2]]
+    res <- assocstats(table(get(var1), get(var2)))$cramer
+    if(!is.nan(res) & res > 0.5){
+      lista <- append(lista, var1)
+    }
+  }
+  return(lista)
+}
+
+significativas_sin_tiempo_ni_vital_status <- lista_var_signif[-c(1,2)]
+pares <- combn(significativas_sin_tiempo_ni_vital_status, 2)
+lista_negra <- list()
+lista_negra <- unique(comprueba_relaciones(pares, lista_negra))
+
+# Nos quedamos con la diferencia de las significativas menos las que ya
+# explican a otras (la "lista negra")
+lista_var_definitiva <- setdiff(lista_var_signif, lista_negra)
+
+new_clinical_df <- clinical_df[,unlist(lista_var_definitiva)]
+head(new_clinical_df)
+str(new_clinical_df)
+colSums(is.na(new_clinical_df))

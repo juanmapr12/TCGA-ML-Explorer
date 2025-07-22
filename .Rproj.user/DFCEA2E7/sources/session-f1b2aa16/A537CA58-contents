@@ -1,0 +1,76 @@
+source("scripts/datos_combinados.R")
+
+# Librerías que vamos a necesitar:
+library(caret)
+library(pheatmap)
+
+
+# Separamos en entrenamiento y prueba:
+trainIndex <- createDataPartition(df_definitivo$vital_status, p = 0.8, list = FALSE)
+train_data <- df_definitivo[trainIndex, ]
+test_data <- df_definitivo[-trainIndex, ]
+
+
+# Me quedo con los 50 primeros de mayor valoración:
+
+# Calcular media y desviación estándar por fila (miRNA)
+media_mirnas <- apply(mirnas_tras_filtros_y_dea, 1, mean)
+sd_mirnas <- apply(mirnas_tras_filtros_y_dea, 1, sd)
+
+# Coeficiente de variación = sd / media
+cv_mirna <- sd_mirnas / media_mirnas
+
+# Ordenar de mayor a menor y quedarte con los 50 primeros
+top50_cv <- sort(cv_mirna, decreasing = TRUE)[1:50]
+
+# Extraer los miRNAs correspondientes del dataframe original
+mirnas_top50 <- t(df_definitivo[,names(top50_cv)])
+
+
+# Escalamos por fila:
+mirnas_escalados <- t(scale(t(mirnas_top50)))
+
+# Tratamos de convertir a distancias la diferencia entre 1 y la matriz
+# de correlación 
+D <- as.dist(1 - cor(t(mirnas_escalados), method = "pearson"))
+
+conglo <- hclust(D, method="ward.D2")
+plot(conglo, cex=0.8, labels=rownames(mirnas_escalados),
+     main="Dendrograma", xlab=conglo$method,
+     sub="", ylab="Distancias", col="blue")
+
+coph <- cophenetic(conglo)
+cor(D, coph)
+
+k <- 4
+grupos <- cutree(conglo, k)
+table(grupos)
+
+
+p <- pheatmap(mirnas_escalados,
+         breaks = seq(-5, 5, length.out = 100),
+         cluster_rows = TRUE, cluster_cols = TRUE,
+         show_colnames = FALSE,
+         annotation_row = data.frame(Cluster = factor(grupos)))
+
+
+clus <- 2
+v <- names(grupos[grupos == clus])
+
+# Submatriz de expresión para ese clúster
+submatrix <- mirnas_escalados[v, ]
+
+# Promedio de expresión por muestra (columna)
+mean_expr_per_sample <- sort(abs(colMeans(submatrix)), decreasing=TRUE)
+
+# Escogemos 3 como umbral
+threshold <- 5
+
+# Muestras con alta expresión
+high_expr_samples <- names(mean_expr_per_sample[mean_expr_per_sample > threshold])
+
+mirnas_escalados[v,high_expr_samples]
+
+sub_clinical <- df_definitivo[high_expr_samples,c("tipo_muestra",colnames(new_clinical_df))]
+sub_clinical
+
